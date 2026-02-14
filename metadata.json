@@ -1,0 +1,8 @@
+{
+  "name": "We Rise - My Learning",
+  "description": "A persona-based learning platform helping professionals transition into Product Owner roles with AI-powered assessment, personalized roadmaps, and mentorship.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
