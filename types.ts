@@ -16,12 +16,13 @@ export type UserRole = 'user' | 'admin';
 export interface Course {
   id: string;
   title: string;
-  source: string;
+  source: string; // URL or Platform name
+  url?: string;
   level: CourseLevel;
   category: string;
   durationHours: number;
   status: CourseStatus;
-  progress: number; // 0 to 100
+  progress: number; 
   description: string;
   deadline?: string;
 }
@@ -29,11 +30,12 @@ export interface Course {
 export interface UserProfile {
   name: string;
   email: string;
-  background: string; // e.g., Testing, Operations
+  background: string; 
   skills: string[];
   availabilityHoursPerWeek: number;
   targetRole: string;
   role: UserRole;
+  themeColor?: string;
 }
 
 export interface LearningPath {
@@ -64,12 +66,4 @@ export interface Message {
   sender: 'user' | 'mentor';
   text: string;
   timestamp: string;
-}
-
-export interface EvaluationResult {
-  score: number;
-  totalQuestions: number;
-  date: string;
-  feedback: string;
-  categoryScores: Record<string, number>;
 }

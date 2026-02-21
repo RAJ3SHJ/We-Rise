@@ -1,51 +1,58 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { UserProfile, CourseLevel, CourseStatus } from "../types";
+import { UserProfile, Course } from "../types";
 
-// Always use the direct process.env.API_KEY for initialization as per guidelines
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-export async function generateLearningPath(profile: UserProfile) {
+export async function generateLearningPath(profile: UserProfile, availableCourses: Course[]) {
+  const coursePoolString = availableCourses.map(c => 
+    `ID: ${c.id}, Title: ${c.title}, Level: ${c.level}, Category: ${c.category}, Description: ${c.description}`
+  ).join('\n');
+
   const response = await ai.models.generateContent({
     model: "gemini-3-pro-preview",
-    contents: `Generate a detailed Product Owner learning path for someone with a background in ${profile.background}. 
+    contents: `You are a Career Counselor for "We Rise". 
+    A student with a background in ${profile.background} wants to transition to a Product Owner role.
     They are currently skilled in: ${profile.skills.join(', ')}. 
-    They can commit ${profile.availabilityHoursPerWeek} hours per week.
-    Please suggest 6 courses categorized by level (Basic to Advanced).`,
+    They commit ${profile.availabilityHoursPerWeek} hours per week.
+
+    ACT AS A FILTER: Below is a list of hand-picked courses from our administrators. 
+    Select the 6 MOST RELEVANT courses from this list to create their personalized path. 
+    DO NOT invent courses. ONLY use the provided IDs.
+
+    AVAILABLE COURSES:
+    ${coursePoolString}
+
+    Provide a response with a catchy title for their path and the selected Course IDs.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
         properties: {
           title: { type: Type.STRING },
-          courses: {
+          selectedCourseIds: {
             type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                id: { type: Type.STRING },
-                title: { type: Type.STRING },
-                source: { type: Type.STRING, description: 'e.g., Udemy, YouTube, Coursera' },
-                level: { type: Type.STRING, enum: ['Basic', 'Intermediate', 'Advanced'] },
-                category: { type: Type.STRING },
-                durationHours: { type: Type.NUMBER },
-                description: { type: Type.STRING },
-                deadlineWeeks: { type: Type.NUMBER, description: 'How many weeks from start should this be completed?' }
-              },
-              required: ['id', 'title', 'source', 'level', 'category', 'durationHours', 'description', 'deadlineWeeks']
-            }
+            items: { type: Type.STRING }
           }
         },
-        required: ['title', 'courses']
+        required: ['title', 'selectedCourseIds']
       }
     }
   });
 
   try {
     const data = JSON.parse(response.text || '{}');
-    return data;
+    // Map IDs back to full course objects
+    const selectedCourses = data.selectedCourseIds
+      .map((id: string) => availableCourses.find(c => c.id === id))
+      .filter(Boolean);
+
+    return {
+      title: data.title,
+      courses: selectedCourses
+    };
   } catch (error) {
-    console.error("Failed to parse Gemini response", error);
+    console.error("System Process Error", error);
     return null;
   }
 }
@@ -53,17 +60,15 @@ export async function generateLearningPath(profile: UserProfile) {
 export async function getMentorAdvice(question: string, profile: UserProfile) {
     const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `You are a Senior Product Owner Mentor. A student with a background in ${profile.background} asks: "${question}". Provide a helpful, encouraging, and professional response.`,
+        contents: `You are a Senior Product Owner Mentor at "We Rise". A student with a background in ${profile.background} asks: "${question}". Provide helpful, professional advice.`,
     });
     return response.text;
 }
 
 export async function evaluatePerformance(score: number, total: number, profile: UserProfile) {
-  const percentage = (score / total) * 100;
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `A student transition to a Product Owner role from a ${profile.background} background just scored ${score}/${total} (${percentage}%) on a knowledge assessment. 
-    Provide concise, expert feedback. If the score is high, suggest advanced topics. If the score is low, provide encouragement and suggest which fundamentals to revisit.`,
+    contents: `Score: ${score}/${total}. Background: ${profile.background}. Give expert PO transition feedback on behalf of "We Rise".`,
   });
   return response.text;
 }

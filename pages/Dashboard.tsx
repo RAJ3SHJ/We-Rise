@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { UserProfile, LearningPath, CourseStatus } from '../types';
-import { Clock, TrendingUp, Trophy, ArrowRight, Bell, FileText, CheckCircle2, ChevronRight, Sparkles } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Clock, TrendingUp, Trophy, ArrowRight, CheckCircle2, Sparkles, Bell } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface DashboardProps {
   profile: UserProfile | null;
@@ -11,123 +11,56 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ profile, path, notifications }) => {
-  const [hasSkipped, setHasSkipped] = useState(false);
-  const navigate = useNavigate();
-
-  // Empty State: User has no profile details or no learning path yet
-  if ((!profile || !path) && !hasSkipped) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center max-w-4xl mx-auto space-y-12 animate-in fade-in zoom-in-95 duration-500">
-        <div className="space-y-4">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-indigo-100 rounded-[2rem] text-indigo-600 shadow-xl shadow-indigo-50">
-            <Sparkles size={40} />
-          </div>
-          <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">Welcome to PO-Path</h2>
-          <p className="text-slate-500 text-lg max-w-xl mx-auto">
-            Your journey to becoming a high-impact Product Owner starts here. 
-            Choose how you'd like to begin your transition.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
-          {/* Skill Assessment Card */}
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-100/50 transition-all group flex flex-col text-left">
-            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-              <CheckCircle2 size={24} />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">Skill Assessment</h3>
-            <p className="text-slate-500 text-sm mb-8 flex-1">
-              Generate a personalized learning roadmap based on your current background and professional goals.
-            </p>
-            <Link 
-              to="/assessment" 
-              className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
-            >
-              Start Skill Assessment <ChevronRight size={18} />
-            </Link>
-          </div>
-
-          {/* Conduct Assessment Card */}
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-100/50 transition-all group flex flex-col text-left">
-            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-              <FileText size={24} />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">Conduct Assessment</h3>
-            <p className="text-slate-500 text-sm mb-8 flex-1">
-              Skip the roadmap and jump straight into a knowledge exam to evaluate your PO fundamentals.
-            </p>
-            <button 
-              onClick={() => navigate('/evaluation')}
-              className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
-            >
-              Start Conduct Assessment <ChevronRight size={18} />
-            </button>
-          </div>
-        </div>
-
-        <button 
-          onClick={() => setHasSkipped(true)}
-          className="text-slate-400 font-bold hover:text-slate-600 transition-colors uppercase text-xs tracking-[0.2em] flex items-center gap-2"
-        >
-          Skip for now <ArrowRight size={14} />
-        </button>
-      </div>
-    );
-  }
-
-  // Basic Dashboard if skipped or path exists
   const completedCourses = path?.courses.filter(c => c.status === CourseStatus.COMPLETED).length || 0;
   const totalCourses = path?.courses.length || 0;
   const progressPercent = totalCourses > 0 ? Math.round((completedCourses / totalCourses) * 100) : 0;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-700">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Welcome back, {profile?.name}!</h1>
-          <p className="text-slate-500">
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Rise High, {profile?.name}!</h1>
+          <p className="text-slate-500 font-medium">
             {path 
-              ? `You're transitioning from ${profile?.background} to Product Owner.` 
-              : "Explore the platform and start an assessment when you're ready."}
+              ? `Your personalized path to Product Owner is active.` 
+              : "Welcome to We Rise. Start by building your tailored roadmap."}
           </p>
         </div>
         <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-slate-400">Next milestone in 3 days</span>
-            <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm">
-                <Trophy className="text-amber-500" size={20} />
+            <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
+                <Trophy className="text-amber-500" size={24} />
             </div>
         </div>
       </header>
 
-      {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard 
           icon={<Clock className="text-blue-500" />} 
-          label="Weekly Target" 
+          label="Commitment" 
           value={`${profile?.availabilityHoursPerWeek || 0}h`} 
-          subValue="Commitment maintained"
+          subValue="Hours per week"
         />
         <StatCard 
           icon={<TrendingUp className="text-emerald-500" />} 
-          label="Path Progress" 
+          label="Progress" 
           value={`${progressPercent}%`} 
-          subValue={path ? `${completedCourses} of ${totalCourses} courses completed` : "No roadmap active"}
+          subValue={`${completedCourses} of ${totalCourses} units`}
         />
         <StatCard 
           icon={<Trophy className="text-amber-500" />} 
-          label="Skill Level" 
-          value="Junior PO" 
-          subValue="Approaching Intermediate"
+          label="Level" 
+          value="Rising PO" 
+          subValue="Building fundamentals"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 min-h-[300px] flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold">Current Courses</h3>
+          <div className="bg-white/80 backdrop-blur-md p-8 rounded-[3rem] shadow-sm border border-white/50 min-h-[400px] flex flex-col">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-2xl font-black text-slate-800 tracking-tight">Learning Track</h3>
               {path && (
-                <Link to="/roadmap" className="text-sm text-indigo-600 font-semibold hover:underline flex items-center gap-1">
+                <Link to="/roadmap" className="px-5 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors flex items-center gap-2">
                   View Roadmap <ArrowRight size={14} />
                 </Link>
               )}
@@ -135,63 +68,83 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, path, notifications }) =
             
             {path ? (
               <div className="space-y-4">
-                {path.courses.slice(0, 3).map(course => (
-                  <div key={course.id} className="flex items-center gap-4 p-4 rounded-xl border border-slate-50 hover:bg-slate-50 transition-colors">
-                    <div className={`w-2 h-12 rounded-full ${
+                {path.courses.slice(0, 5).map(course => (
+                  <div key={course.id} className="flex items-center gap-5 p-6 rounded-[2rem] border border-slate-50 bg-white/50 hover:bg-white transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-indigo-500/5 group">
+                    <div className={`w-1.5 h-12 rounded-full transition-all group-hover:h-14 ${
                       course.status === CourseStatus.COMPLETED ? 'bg-emerald-500' : 
                       course.status === CourseStatus.IN_PROGRESS ? 'bg-indigo-500' : 'bg-slate-200'
                     }`} />
                     <div className="flex-1">
-                      <h4 className="font-semibold text-slate-800">{course.title}</h4>
-                      <p className="text-xs text-slate-400">{course.source} • {course.durationHours}h • {course.level}</p>
+                      <h4 className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{course.title}</h4>
+                      <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5">{course.source} • {course.level}</p>
                     </div>
                     <div className="text-right">
-                      <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded-full ${
-                        course.status === CourseStatus.COMPLETED ? 'bg-emerald-50 text-emerald-600' : 
-                        course.status === CourseStatus.IN_PROGRESS ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'
+                      <span className={`text-[9px] uppercase font-black px-4 py-1.5 rounded-xl border ${
+                        course.status === CourseStatus.COMPLETED ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                        course.status === CourseStatus.IN_PROGRESS ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-100'
                       }`}>
                         {course.status}
                       </span>
                     </div>
                   </div>
                 ))}
+                {path.courses.length > 5 && (
+                  <Link to="/roadmap" className="block text-center py-4 text-slate-400 font-bold hover:text-indigo-600 transition-colors text-xs uppercase tracking-widest">
+                    + {path.courses.length - 5} more courses in roadmap
+                  </Link>
+                )}
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-4">
-                 <div className="p-4 bg-slate-50 rounded-full text-slate-300">
-                    <Sparkles size={32} />
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-6">
+                 <div className="w-24 h-24 bg-indigo-50 text-indigo-600 rounded-[2rem] flex items-center justify-center animate-bounce shadow-xl shadow-indigo-100">
+                    <Sparkles size={40} />
                  </div>
-                 <p className="text-slate-400 text-sm font-medium">No courses in your current path yet.</p>
-                 <Link to="/assessment" className="text-indigo-600 text-sm font-bold hover:underline">Generate Roadmap now →</Link>
+                 <div>
+                    <h4 className="text-xl font-black text-slate-800">Your Path Awaits</h4>
+                    <p className="text-slate-400 font-medium max-w-xs mx-auto mt-2 italic">Catalog your skills or take an evaluation to generate your smart curriculum.</p>
+                 </div>
+                 <Link to="/assessment" className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-100 hover:scale-105 transition-all">
+                   Go to Assessments
+                 </Link>
               </div>
             )}
           </div>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-indigo-700 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
+          <div className="bg-indigo-700 text-white p-8 rounded-[3rem] shadow-2xl shadow-indigo-900/20 relative overflow-hidden group border border-indigo-500/30">
             <div className="relative z-10">
-              <h3 className="text-lg font-bold mb-2">Mentor Quick Tip</h3>
-              <p className="text-indigo-100 text-sm italic">"As a PO, focus on prioritizing based on value, not just feature requests. User stories are about outcomes!"</p>
-              <button className="mt-4 text-xs font-bold uppercase tracking-wider bg-white/20 hover:bg-white/30 px-3 py-2 rounded-lg transition-colors">
-                Read More
-              </button>
+              <h3 className="text-xl font-black mb-3 flex items-center gap-2">
+                <Sparkles size={20} className="text-indigo-300" />
+                Daily Wisdom
+              </h3>
+              <p className="text-indigo-100 text-sm italic font-medium leading-relaxed">
+                "Product Ownership is about the 'Why' and the 'What'. Let the team handle the 'How'. Empower them with clear vision and prioritized value."
+              </p>
+              <div className="mt-8 pt-6 border-t border-indigo-600/50">
+                <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Focus Area</p>
+                <p className="font-bold text-sm">Vision & Strategy</p>
+              </div>
             </div>
-            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+            <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000" />
           </div>
 
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-             <div className="flex items-center gap-2 mb-4">
-                <Bell size={18} className="text-indigo-600" />
-                <h3 className="font-bold">Recent Alerts</h3>
+          <div className="bg-white/80 backdrop-blur-md p-8 rounded-[3rem] shadow-sm border border-white/50">
+             <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                  <Bell size={20} className="text-indigo-600" />
+                </div>
+                <h3 className="font-black text-slate-800 tracking-tight">Rising Alerts</h3>
              </div>
-             <div className="space-y-4">
-                {notifications.map((n, i) => (
-                  <div key={i} className="flex gap-3 text-sm border-b border-slate-50 pb-3 last:border-0">
-                    <div className="w-1 h-1 mt-2 rounded-full bg-indigo-500 flex-shrink-0" />
-                    <p className="text-slate-600">{n}</p>
+             <div className="space-y-5">
+                {notifications.length > 0 ? notifications.map((n, i) => (
+                  <div key={i} className="flex gap-4 items-start pb-5 border-b border-slate-50 last:border-0 last:pb-0">
+                    <div className="w-2 h-2 mt-2 rounded-full bg-indigo-500 flex-shrink-0 animate-pulse" />
+                    <p className="text-sm text-slate-600 font-medium leading-relaxed">{n}</p>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-xs text-slate-400 italic text-center py-4">No new notifications</p>
+                )}
              </div>
           </div>
         </div>
@@ -201,14 +154,14 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, path, notifications }) =
 };
 
 const StatCard: React.FC<{ icon: React.ReactNode, label: string, value: string, subValue: string }> = ({ icon, label, value, subValue }) => (
-  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-5">
-    <div className="p-3 bg-slate-50 rounded-xl">
+  <div className="bg-white/70 backdrop-blur-md p-8 rounded-[2.5rem] shadow-sm border border-white/50 flex items-center gap-6 group hover:border-indigo-100 transition-all hover:shadow-xl hover:shadow-indigo-500/5">
+    <div className="p-4 bg-slate-50 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-all group-hover:rotate-3 group-hover:scale-110 shadow-sm">
       {icon}
     </div>
     <div>
-      <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{label}</p>
-      <h4 className="text-2xl font-bold text-slate-800">{value}</h4>
-      <p className="text-[10px] text-slate-400 mt-0.5">{subValue}</p>
+      <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">{label}</p>
+      <h4 className="text-3xl font-black text-slate-800 tracking-tighter group-hover:text-indigo-600 transition-colors">{value}</h4>
+      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest opacity-60">{subValue}</p>
     </div>
   </div>
 );

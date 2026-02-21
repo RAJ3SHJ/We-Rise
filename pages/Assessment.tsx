@@ -1,266 +1,390 @@
 
 import React, { useState, useEffect } from 'react';
-import { UserProfile, CourseStatus } from '../types';
+import { UserProfile, CourseStatus, Course, Mentor } from '../types';
 import { generateLearningPath } from '../services/geminiService';
-import { Loader2, Sparkles, ChevronRight, Brain, ClipboardCheck, ArrowLeft, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { 
+  Loader2, Brain, ClipboardCheck, ArrowLeft, ArrowRight, 
+  Sparkles, CheckCircle2, UserCheck, Search, ShieldCheck, 
+  GraduationCap, MessageSquare, Plus, X, Tag, UserPlus, Database, FileCheck, Library, Globe, Youtube
+} from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
-interface AssessmentProps {
-  profile: UserProfile | null;
-  setProfile: (p: UserProfile) => void;
-  setPath: (p: any) => void;
-  addNotify: (m: string) => void;
-}
+const DEFAULT_MENTORS: Mentor[] = [
+  { id: '1', name: 'Priya Sharma', role: 'Principal PO @ FinTech Hub', expertise: ['Stakeholder Management', 'Visioning'], avatar: 'https://i.pravatar.cc/150?u=priya' },
+  { id: '2', name: 'Arjun Mehta', role: 'Senior PM @ SaaS Collective', expertise: ['Technical Backlogs', 'Jira Mastery'], avatar: 'https://i.pravatar.cc/150?u=arjun' },
+  { id: '3', name: 'Ananya Iyer', role: 'Product Strategy Lead', expertise: ['Market Analysis', 'Growth Hacking'], avatar: 'https://i.pravatar.cc/150?u=ananya' }
+];
 
-type AssessmentFlow = 'selection' | 'skill-wizard';
-
-const Assessment: React.FC<AssessmentProps> = ({ profile, setProfile, setPath, addNotify }) => {
-  const [flow, setFlow] = useState<AssessmentFlow>('selection');
+const Assessment: React.FC<{ profile: UserProfile, setProfile: any, setPath: any, addNotify: any }> = ({ profile, setProfile, setPath, addNotify }) => {
+  const [searchParams] = useSearchParams();
+  const [view, setView] = useState<'portal' | 'skill-assessment'>('portal');
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState({ courses: 0, questions: 0 });
+  const [libraryPreview, setLibraryPreview] = useState<Course[]>([]);
+  const [mentors, setMentors] = useState<Mentor[]>(DEFAULT_MENTORS);
+  
+  // Skill Assessment State
+  const [skillTags, setSkillTags] = useState<string[]>(profile.skills || []);
+  const [currentSkillInput, setCurrentSkillInput] = useState('');
+  const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
+  
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    name: profile?.name || '',
-    background: profile?.background || 'Operations',
-    skills: profile?.skills || [] as string[],
-    availability: profile?.availabilityHoursPerWeek || 10,
-    newSkill: ''
-  });
-
   useEffect(() => {
-    if (profile?.name && !formData.name) {
-      setFormData(prev => ({ ...prev, name: profile.name }));
+    const courses = JSON.parse(localStorage.getItem('we_rise_admin_courses') || '[]');
+    const questions = JSON.parse(localStorage.getItem('po_exam_questions') || '[]');
+    const savedMentors = JSON.parse(localStorage.getItem('we_rise_mentors') || '[]');
+    
+    setStats({ courses: courses.length, questions: questions.length });
+    setLibraryPreview(courses.slice(0, 4));
+    if (savedMentors.length > 0) setMentors(savedMentors);
+
+    // Check if we should start directly at the mentor selection (Step 2)
+    if (searchParams.get('startAtMentor') === 'true') {
+      setView('skill-assessment');
+      setStep(2);
     }
-  }, [profile?.name]);
+  }, [searchParams]);
 
-  const handleNext = () => setStep(step + 1);
-  const handleBack = () => setStep(step - 1);
-
-  const addSkill = () => {
-    if (formData.newSkill && !formData.skills.includes(formData.newSkill)) {
-      setFormData({ ...formData, skills: [...formData.skills, formData.newSkill], newSkill: '' });
+  const handleAddSkill = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = currentSkillInput.trim();
+    if (trimmed && !skillTags.includes(trimmed)) {
+      setSkillTags([...skillTags, trimmed]);
+      setCurrentSkillInput('');
     }
   };
 
-  const handleSubmitSkillAssessment = async () => {
+  const handleRemoveSkill = (tag: string) => {
+    setSkillTags(skillTags.filter(t => t !== tag));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddSkill();
+    }
+  };
+
+  const startSkillAssessment = () => {
+    setView('skill-assessment');
+    setStep(1);
+  };
+
+  const handleNextStep = () => {
+    if (step === 1 && skillTags.length === 0) {
+      alert("Please add at least one skill to proceed.");
+      return;
+    }
+    if (step === 2 && !selectedMentor) {
+      alert("Please select a mentor to guide your journey.");
+      return;
+    }
+    setStep(step + 1);
+  };
+
+  const finalizeSkillAssessment = async () => {
+    const adminCourses = JSON.parse(localStorage.getItem('we_rise_admin_courses') || '[]');
+    if (adminCourses.length === 0) {
+      alert("The Master Library is currently empty. Please contact an Admin to add courses before generating a path.");
+      return;
+    }
+
     setLoading(true);
-    // Added missing 'role' property to satisfy UserProfile interface
-    const newProfile: UserProfile = {
-      name: formData.name,
-      email: profile?.email || '',
-      background: formData.background,
-      skills: formData.skills,
-      availabilityHoursPerWeek: formData.availability,
-      targetRole: 'Product Owner',
-      role: profile?.role || 'user'
-    };
+    const updatedProfile = { ...profile, skills: skillTags, background: profile.background || "Professional" };
 
-    const aiResult = await generateLearningPath(newProfile);
-    if (aiResult) {
-      const fullPath = {
-        id: Math.random().toString(36).substr(2, 9),
-        title: aiResult.title,
-        overallProgress: 0,
-        lastUpdated: new Date().toISOString(),
-        courses: aiResult.courses.map((c: any) => ({
-          ...c,
-          status: CourseStatus.NOT_STARTED,
-          progress: 0
-        }))
-      };
-      setProfile(newProfile);
-      setPath(fullPath);
-      addNotify("Personalized roadmap generated! Check your dashboard.");
-      navigate('/');
+    try {
+      const res = await generateLearningPath(updatedProfile, adminCourses);
+      if (res && res.courses) {
+        setPath({ 
+          id: Date.now().toString(), 
+          title: res.title, 
+          courses: res.courses.map((c: any) => ({ ...c, status: CourseStatus.NOT_STARTED, progress: 0 })), 
+          overallProgress: 0, 
+          lastUpdated: new Date().toISOString() 
+        });
+        setProfile(updatedProfile);
+        localStorage.setItem('assigned_mentor', JSON.stringify(selectedMentor));
+        navigate('/');
+      } else {
+        alert("The system could not generate a path with the current library. Try adding more courses in Admin.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred while generating your roadmap.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full space-y-4">
-        <Loader2 className="animate-spin text-indigo-600" size={48} />
-        <h2 className="text-xl font-bold">AI is crafting your personal PO path...</h2>
-        <p className="text-slate-500">Analyzing your background in {formData.background}</p>
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8 animate-in fade-in duration-700">
+      <div className="relative">
+        <div className="w-24 h-24 bg-indigo-600 rounded-[2.5rem] flex items-center justify-center text-white shadow-2xl shadow-indigo-200 animate-bounce">
+          <Brain size={48} />
+        </div>
+        <Loader2 className="absolute -bottom-2 -right-2 text-indigo-600 animate-spin" size={32} />
       </div>
-    );
-  }
+      <div className="text-center max-w-sm">
+        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Curating your Path</h2>
+        <p className="text-slate-500 font-medium mt-3 italic leading-relaxed">"Matching your expertise with {selectedMentor?.name}'s mentorship and our library resources..."</p>
+      </div>
+    </div>
+  );
 
-  // --- SELECTION HUB ---
-  if (flow === 'selection') {
-    return (
-      <div className="max-w-4xl mx-auto py-12 px-4 animate-in fade-in zoom-in-95 duration-500">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight mb-4">Assessment Center</h1>
-          <p className="text-slate-500 text-lg">Choose how you would like to evaluate your progress and build your path.</p>
-        </div>
+  if (view === 'portal') return (
+    <div className="max-w-6xl mx-auto py-12 space-y-16 animate-in fade-in slide-in-from-bottom-6 duration-700">
+      <div className="text-center space-y-4">
+        <h1 className="text-6xl font-black text-slate-900 tracking-tighter">Assessment Center</h1>
+        <p className="text-slate-500 text-xl font-medium max-w-2xl mx-auto">Validate your existing expertise or build a new roadmap to PO success.</p>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Skill Assessment Choice */}
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-100/50 transition-all group flex flex-col items-center text-center">
-            <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
-              <Brain size={40} />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-3">Skill Assessment</h2>
-            <p className="text-slate-500 mb-8 flex-1">
-              Complete a profile wizard to generate a personalized AI-powered learning roadmap based on your professional background.
-            </p>
-            <button 
-              onClick={() => setFlow('skill-wizard')}
-              className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
-            >
-              Start Skill Assessment <ChevronRight size={20} />
-            </button>
+      {/* Library Resources Preview Section */}
+      {libraryPreview.length > 0 && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center px-4">
+            <h3 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+              <Library className="text-indigo-600" size={20} /> Master Library Highlights
+            </h3>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{stats.courses} Curated Courses</span>
           </div>
-
-          {/* Conduct Assessment Choice */}
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-emerald-100/50 transition-all group flex flex-col items-center text-center">
-            <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
-              <ClipboardCheck size={40} />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-3">Conduct Assessment</h2>
-            <p className="text-slate-500 mb-8 flex-1">
-              Take a specific set of knowledge-based questions to evaluate your current understanding of PO principles.
-            </p>
-            <button 
-              onClick={() => navigate('/evaluation')}
-              className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
-            >
-              Start Conduct Assessment <ChevronRight size={20} />
-            </button>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {libraryPreview.map(c => (
+              <div key={c.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col group hover:shadow-xl transition-all">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${c.source.toLowerCase().includes('youtube') ? 'bg-red-50 text-red-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                  {c.source.toLowerCase().includes('youtube') ? <Youtube size={18}/> : <Globe size={18}/>}
+                </div>
+                <h4 className="font-black text-slate-800 text-sm leading-tight mb-2 group-hover:text-indigo-600 transition-colors line-clamp-2">{c.title}</h4>
+                <div className="mt-auto flex items-center gap-2">
+                   <span className="text-[8px] font-black uppercase bg-slate-50 px-2 py-1 rounded-lg text-slate-400">{c.level}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+      )}
 
-        <div className="mt-12 flex justify-center">
+      <div className="grid md:grid-cols-2 gap-10">
+        <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm flex flex-col items-center text-center group hover:border-indigo-200 transition-all hover:shadow-2xl hover:-translate-y-2 relative overflow-hidden">
+          <div className="w-24 h-24 bg-indigo-50 text-indigo-600 rounded-[2.5rem] flex items-center justify-center mb-8 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500 shadow-sm">
+            <Brain size={54} />
+          </div>
+          <h2 className="text-3xl font-black text-slate-800 mb-4 tracking-tight">Skill Assessment</h2>
+          <p className="text-slate-500 mb-10 flex-1 font-medium leading-relaxed text-lg">Catalog your current skill set, link with an industry mentor, and receive a tailored learning roadmap.</p>
+          
+          <div className="mb-8 flex items-center gap-3 bg-indigo-50/50 px-5 py-3 rounded-2xl border border-indigo-100">
+             <Database size={16} className="text-indigo-600" />
+             <span className="text-[10px] font-black uppercase tracking-widest text-indigo-700">{stats.courses} Personalized Roadmap Units</span>
+          </div>
+
           <button 
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 px-8 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold hover:bg-slate-200 transition-all"
+            onClick={startSkillAssessment}
+            className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl shadow-indigo-100 hover:scale-[1.03] active:scale-[0.97] transition-all flex items-center justify-center gap-3"
           >
-            <X size={18} /> Skip for Now
+            Start Skill Entry <ArrowRight size={20} />
+          </button>
+        </div>
+
+        <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm flex flex-col items-center text-center group hover:border-emerald-200 transition-all hover:shadow-2xl hover:-translate-y-2 relative overflow-hidden">
+          <div className="w-24 h-24 bg-emerald-50 text-emerald-600 rounded-[2.5rem] flex items-center justify-center mb-8 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-500 shadow-sm">
+            <ClipboardCheck size={54} />
+          </div>
+          <h2 className="text-3xl font-black text-slate-800 mb-4 tracking-tight">Conduct Assessment</h2>
+          <p className="text-slate-500 mb-10 flex-1 font-medium leading-relaxed text-lg">Test your Product Owner knowledge with a formal written evaluation powered by the Master Curriculum.</p>
+          
+          <div className="mb-8 flex items-center gap-3 bg-emerald-50/50 px-5 py-3 rounded-2xl border border-emerald-100">
+             <FileCheck size={16} className="text-emerald-600" />
+             <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">{stats.questions} Validation Questions Available</span>
+          </div>
+
+          <button 
+            onClick={() => navigate('/evaluation')}
+            className="w-full py-6 bg-emerald-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl shadow-emerald-100 hover:scale-[1.03] active:scale-[0.97] transition-all flex items-center justify-center gap-3"
+          >
+            Launch Written Exam <ClipboardCheck size={20} />
           </button>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
-  // --- SKILL WIZARD ---
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="mb-8 flex justify-between items-center">
-        <button 
-          onClick={() => setFlow('selection')}
-          className="flex items-center gap-2 text-slate-400 hover:text-indigo-600 font-bold transition-colors"
-        >
-          <ArrowLeft size={18} /> Back to Selection
-        </button>
-        <div className="flex gap-2">
+    <div className="max-w-4xl mx-auto py-8 animate-in fade-in duration-500">
+      <button 
+        onClick={() => setView('portal')} 
+        className="flex items-center gap-2 text-slate-400 mb-10 hover:text-indigo-600 font-black uppercase tracking-widest text-xs transition-colors"
+      >
+        <ArrowLeft size={18}/> Back to Portal
+      </button>
+
+      <div className="mb-12">
+        <div className="flex justify-between items-center mb-6">
+          <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.4em]">Step {step} of 3</span>
+          <div className="flex gap-2">
             {[1, 2, 3].map(i => (
-                <div key={i} className={`h-2 w-8 rounded-full ${step >= i ? 'bg-indigo-600' : 'bg-slate-200'}`} />
+              <div key={i} className={`h-1.5 w-16 rounded-full transition-all duration-500 ${step >= i ? 'bg-indigo-600 shadow-sm' : 'bg-slate-100'}`} />
             ))}
+          </div>
         </div>
+        <h2 className="text-5xl font-black text-slate-900 tracking-tight">
+          {step === 1 && "Catalog your Skills"}
+          {step === 2 && "Link with a Mentor"}
+          {step === 3 && "Generate your Rise Path"}
+        </h2>
       </div>
 
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Skill Onboarding Wizard</h1>
-          <p className="text-slate-500 text-sm">Step {step} of 3</p>
-        </div>
-
+      <div className="space-y-10">
         {step === 1 && (
-          <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">What's your name?</label>
-              <input 
-                type="text" 
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                placeholder="Enter full name"
-                className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
+          <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8 animate-in slide-in-from-right-4 duration-500">
+            <div className="space-y-6">
+              <div className="flex justify-between items-end">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Expertise Registry</label>
+                <span className="text-[10px] font-bold text-indigo-600">{skillTags.length} skills added</span>
+              </div>
+              
+              <div className="relative group">
+                <input 
+                  type="text"
+                  value={currentSkillInput}
+                  onChange={(e) => setCurrentSkillInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="w-full pl-12 pr-12 py-6 border border-slate-100 bg-slate-50 rounded-[2rem] focus:bg-white focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 outline-none transition-all font-bold text-lg"
+                  placeholder="Type a skill and press 'Enter' to add..."
+                />
+                <Tag className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+                <button 
+                  onClick={handleAddSkill}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-3 bg-indigo-600 text-white rounded-xl hover:scale-110 active:scale-95 transition-all shadow-lg shadow-indigo-100"
+                >
+                  <Plus size={20} />
+                </button>
+              </div>
+
+              <div className="min-h-[160px] p-6 bg-slate-50/50 rounded-[2.5rem] border border-dashed border-slate-200 flex flex-wrap gap-3 items-start content-start">
+                {skillTags.length === 0 ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center py-8 opacity-30 text-slate-400">
+                     <Plus size={32} className="mb-2" />
+                     <p className="font-bold text-sm italic">Add your skills to see them here...</p>
+                  </div>
+                ) : (
+                  skillTags.map((skill) => (
+                    <div 
+                      key={skill} 
+                      className="group flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-100 rounded-full shadow-sm hover:shadow-md hover:border-indigo-200 transition-all animate-in zoom-in-90"
+                    >
+                      <span className="text-xs font-black text-slate-700 tracking-tight">{skill}</span>
+                      <button 
+                        onClick={() => handleRemoveSkill(skill)}
+                        className="p-1 hover:text-red-500 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2 text-indigo-600 bg-indigo-50 px-5 py-3 rounded-2xl">
+                <CheckCircle2 size={18} />
+                <p className="text-xs font-bold italic">Adding specific skills like "Jira", "User Stories", or "Stakeholder Management" results in a better matched experience.</p>
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Current Background</label>
-              <select 
-                value={formData.background}
-                onChange={(e) => setFormData({...formData, background: e.target.value})}
-                className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
-              >
-                <option>Operations</option>
-                <option>QA/Testing</option>
-                <option>Banking/Finance</option>
-                <option>Project Management</option>
-                <option>Marketing</option>
-                <option>Development</option>
-                <option>Customer Support</option>
-              </select>
-            </div>
-            <button onClick={handleNext} disabled={!formData.name} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold disabled:opacity-50 flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors">
-              Next Step <ChevronRight size={20} />
+
+            <button 
+              onClick={handleNextStep}
+              className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-indigo-100"
+            >
+              Link to Mentor <ArrowRight size={20} />
             </button>
           </div>
         )}
 
         {step === 2 && (
-          <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Your current skills</label>
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={formData.newSkill}
-                  onChange={(e) => setFormData({...formData, newSkill: e.target.value})}
-                  placeholder="e.g., SQL, JIRA"
-                  className="flex-1 p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  onKeyPress={(e) => e.key === 'Enter' && addSkill()}
-                />
-                <button onClick={addSkill} className="px-4 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors">Add</button>
-              </div>
-              <div className="flex flex-wrap gap-2 pt-2">
-                {formData.skills.map(s => (
-                  <span key={s} className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium flex items-center gap-1">
-                    {s} 
-                    <button onClick={() => setFormData({...formData, skills: formData.skills.filter(sk => sk !== s)})} className="hover:text-red-500">×</button>
-                  </span>
-                ))}
-              </div>
+          <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {mentors.map(m => (
+                <button 
+                  key={m.id}
+                  onClick={() => setSelectedMentor(m)}
+                  className={`bg-white p-8 rounded-[3rem] border-4 text-center flex flex-col items-center transition-all duration-300 relative overflow-hidden ${
+                    selectedMentor?.id === m.id ? 'border-indigo-600 shadow-2xl scale-105' : 'border-transparent shadow-sm hover:border-indigo-100'
+                  }`}
+                >
+                  <div className="w-24 h-24 rounded-[2.5rem] overflow-hidden mb-6 border-4 border-white shadow-xl">
+                    <img src={m.avatar} className="w-full h-full object-cover" alt={m.name} />
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900 mb-1">{m.name}</h3>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-4">{m.role}</p>
+                  <div className="flex flex-wrap justify-center gap-1.5 mt-auto">
+                    {m.expertise.map(exp => (
+                      <span key={exp} className="px-3 py-1 bg-indigo-50 text-indigo-700 text-[8px] font-black uppercase rounded-lg">
+                        {exp}
+                      </span>
+                    ))}
+                  </div>
+                  {selectedMentor?.id === m.id && (
+                    <div className="absolute top-4 right-4 text-indigo-600 bg-white p-1 rounded-full shadow-sm">
+                      <CheckCircle2 size={24} />
+                    </div>
+                  )}
+                </button>
+              ))}
             </div>
+            
             <div className="flex gap-4">
-              <button onClick={handleBack} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Back</button>
-              <button onClick={handleNext} className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors">Continue</button>
+               <button onClick={() => setStep(1)} className="flex-1 py-6 bg-slate-100 text-slate-500 rounded-[2rem] font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all">Previous</button>
+               <button 
+                 onClick={handleNextStep}
+                 className="flex-[2] py-6 bg-indigo-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:scale-[1.02] transition-all shadow-xl shadow-indigo-100"
+               >
+                 Confirm Selection <ArrowRight size={20} />
+               </button>
             </div>
           </div>
         )}
 
         {step === 3 && (
-          <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Weekly Commitment (Hours)</label>
-              <div className="flex items-center gap-4">
-                <input 
-                  type="range" min="5" max="40" step="5"
-                  value={formData.availability}
-                  onChange={(e) => setFormData({...formData, availability: parseInt(e.target.value)})}
-                  className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                />
-                <span className="font-bold text-xl text-indigo-700 w-12">{formData.availability}h</span>
-              </div>
-            </div>
-
-            <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100 flex items-start gap-4">
-                <Sparkles className="text-indigo-600 mt-1 flex-shrink-0" size={24} />
-                <div>
-                    <h4 className="font-bold text-indigo-900">Ready to AI-Craft your path?</h4>
-                    <p className="text-sm text-indigo-700">We will build a roadmap based on your {formData.background} experience.</p>
+          <div className="space-y-8 animate-in zoom-in-95 duration-500">
+             <div className="bg-indigo-600 p-12 rounded-[4rem] text-white flex flex-col md:flex-row items-center gap-10 relative overflow-hidden shadow-2xl shadow-indigo-200 border border-indigo-500">
+                <div className="z-10 text-center md:text-left space-y-6 flex-1">
+                   <div className="inline-flex items-center gap-3 bg-white/10 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-white/20">
+                     <GraduationCap size={16} /> Finalize Path
+                   </div>
+                   <h3 className="text-5xl font-black tracking-tighter leading-none">Confirm Setup</h3>
+                   <div className="space-y-2">
+                      <p className="text-indigo-100 text-lg font-medium">Assigned Mentor: <span className="text-white font-black">{selectedMentor?.name}</span></p>
+                      <p className="text-indigo-100 text-lg font-medium">Skills Captured: <span className="text-white font-black">{skillTags.length} identified</span></p>
+                   </div>
                 </div>
-            </div>
+                <div className="z-10 relative">
+                   <div className="w-48 h-48 rounded-[3.5rem] border-[12px] border-white/10 overflow-hidden shadow-2xl">
+                     <img src={selectedMentor?.avatar} className="w-full h-full object-cover" alt="Mentor" />
+                   </div>
+                   <div className="absolute -bottom-4 -right-4 bg-white text-indigo-600 p-4 rounded-[1.5rem] shadow-xl">
+                      <UserCheck size={24} />
+                   </div>
+                </div>
+             </div>
 
-            <div className="flex gap-4">
-              <button onClick={handleBack} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Back</button>
-              <button onClick={handleSubmitSkillAssessment} className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
-                Generate My Path <Sparkles size={18} />
-              </button>
-            </div>
+             <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm flex flex-col items-center text-center space-y-8">
+                <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-[2rem] flex items-center justify-center">
+                   <ShieldCheck size={40} />
+                </div>
+                <div className="space-y-2">
+                   <h4 className="text-3xl font-black text-slate-900 tracking-tight">Generate Learning Roadmap</h4>
+                   <p className="text-slate-500 font-medium max-w-md mx-auto leading-relaxed">The system will now analyze your skill registry and the Master Library to construct your personalized 6-course curriculum.</p>
+                </div>
+                <div className="flex gap-4 w-full">
+                  <button onClick={() => setStep(2)} className="flex-1 py-6 bg-slate-50 text-slate-400 rounded-[2.5rem] font-black uppercase tracking-widest text-xs hover:bg-slate-100 transition-all">Review Mentor</button>
+                  <button 
+                    onClick={finalizeSkillAssessment}
+                    className="flex-[2] py-6 bg-emerald-600 text-white rounded-[2.5rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-2xl shadow-emerald-100"
+                  >
+                    Build My Roadmap <Sparkles size={20} />
+                  </button>
+                </div>
+             </div>
           </div>
         )}
       </div>
