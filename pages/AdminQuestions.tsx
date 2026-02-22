@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Question } from '../types';
-import { Plus, Trash2, Save, X, ClipboardList } from 'lucide-react';
+import { Plus, Trash2, Save, X, ClipboardList, ArrowLeft } from 'lucide-react';
 
 const AdminQuestions: React.FC = () => {
+  const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [form, setForm] = useState<Partial<Question>>({ text: '', options: ['', '', '', ''], correctIndex: 0 });
@@ -26,8 +28,14 @@ const AdminQuestions: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
+      <button 
+        onClick={() => navigate('/admin')}
+        className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition-colors mb-4"
+      >
+        <ArrowLeft size={20} /> Back to Admin Hub
+      </button>
       <header className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Exam Management</h1>
+        <h1 className="text-[12px] font-bold">Exam Management</h1>
         <button onClick={() => setIsAdding(true)} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2"><Plus size={20}/> New Question</button>
       </header>
 

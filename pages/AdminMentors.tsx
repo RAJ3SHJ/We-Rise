@@ -1,32 +1,33 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Mentor } from '../types';
-import { Plus, Trash2, Save, X, UserCircle, Briefcase, Award, Image as ImageIcon, Sparkles } from 'lucide-react';
-
-const DEFAULT_MENTORS: Mentor[] = [
-  { id: '1', name: 'Priya Sharma', role: 'Principal PO @ FinTech Hub', expertise: ['Stakeholder Management', 'Visioning'], avatar: 'https://i.pravatar.cc/150?u=priya' },
-  { id: '2', name: 'Arjun Mehta', role: 'Senior PM @ SaaS Collective', expertise: ['Technical Backlogs', 'Jira Mastery'], avatar: 'https://i.pravatar.cc/150?u=arjun' },
-  { id: '3', name: 'Ananya Iyer', role: 'Product Strategy Lead', expertise: ['Market Analysis', 'Growth Hacking'], avatar: 'https://i.pravatar.cc/150?u=ananya' }
-];
+import { Plus, Trash2, Save, X, UserCircle, ArrowLeft, Briefcase, Award } from 'lucide-react';
 
 const AdminMentors: React.FC = () => {
+  const navigate = useNavigate();
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [isAdding, setIsAdding] = useState(false);
-  const [expertiseInput, setExpertiseInput] = useState('');
   const [form, setForm] = useState<Partial<Mentor>>({
     name: '',
     role: '',
     expertise: [],
     avatar: ''
   });
+  const [expertiseInput, setExpertiseInput] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem('we_rise_mentors');
     if (saved) {
       setMentors(JSON.parse(saved));
     } else {
-      setMentors(DEFAULT_MENTORS);
-      localStorage.setItem('we_rise_mentors', JSON.stringify(DEFAULT_MENTORS));
+      // Seed with some default mentors if none exist
+      const defaultMentors: Mentor[] = [
+        { id: '1', name: 'Sarah Chen', role: 'Senior Product Manager', expertise: ['Agile', 'Product Strategy'], avatar: 'https://picsum.photos/seed/sarah/200' },
+        { id: '2', name: 'Marcus Thorne', role: 'Technical Product Owner', expertise: ['System Design', 'Backlog Management'], avatar: 'https://picsum.photos/seed/marcus/200' }
+      ];
+      setMentors(defaultMentors);
+      localStorage.setItem('we_rise_mentors', JSON.stringify(defaultMentors));
     }
   }, []);
 
@@ -35,37 +36,22 @@ const AdminMentors: React.FC = () => {
     localStorage.setItem('we_rise_mentors', JSON.stringify(data));
   };
 
-  const handleAddExpertise = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && expertiseInput.trim()) {
-      e.preventDefault();
-      if (!form.expertise?.includes(expertiseInput.trim())) {
-        setForm({ ...form, expertise: [...(form.expertise || []), expertiseInput.trim()] });
-      }
-      setExpertiseInput('');
-    }
-  };
-
-  const removeExpertise = (tag: string) => {
-    setForm({ ...form, expertise: form.expertise?.filter(t => t !== tag) });
-  };
-
   const handleCreate = () => {
-    if (!form.name || !form.role || !form.avatar) {
-      alert("Name, Role, and Avatar URL are mandatory.");
+    if (!form.name || !form.role) {
+      alert("Name and Role are mandatory.");
       return;
     }
-
     const newMentor: Mentor = {
       id: Date.now().toString(),
-      name: form.name,
-      role: form.role,
+      name: form.name!,
+      role: form.role!,
       expertise: form.expertise || [],
-      avatar: form.avatar
+      avatar: form.avatar || `https://picsum.photos/seed/${Date.now()}/200`
     };
-
     saveMentors([...mentors, newMentor]);
     setIsAdding(false);
     setForm({ name: '', role: '', expertise: [], avatar: '' });
+    setExpertiseInput('');
   };
 
   const deleteMentor = (id: string) => {
@@ -74,18 +60,36 @@ const AdminMentors: React.FC = () => {
     }
   };
 
+  const addExpertise = () => {
+    if (expertiseInput.trim() && !form.expertise?.includes(expertiseInput.trim())) {
+      setForm({ ...form, expertise: [...(form.expertise || []), expertiseInput.trim()] });
+      setExpertiseInput('');
+    }
+  };
+
+  const removeExpertise = (skill: string) => {
+    setForm({ ...form, expertise: form.expertise?.filter(s => s !== skill) });
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in duration-700">
+      <button 
+        onClick={() => navigate('/admin')}
+        className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition-colors mb-4"
+      >
+        <ArrowLeft size={20} /> Back to Admin Hub
+      </button>
+
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
         <div>
           <h1 className="text-5xl font-black text-slate-900 tracking-tight">Mentor Management</h1>
-          <p className="text-slate-500 font-medium text-lg mt-2 italic">Curate the panel of Indian industry experts guiding our students.</p>
+          <p className="text-slate-500 font-medium text-lg mt-2 italic">Add and manage industry experts who guide our students.</p>
         </div>
         <button 
           onClick={() => setIsAdding(true)} 
           className="px-10 py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-indigo-100 flex items-center gap-3 hover:scale-105 active:scale-95 transition-all"
         >
-          <Plus size={20}/> Onboard New Mentor
+          <Plus size={20}/> New Mentor
         </button>
       </header>
 
@@ -96,74 +100,92 @@ const AdminMentors: React.FC = () => {
                 <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center">
                   <UserCircle size={24} />
                 </div>
-                <h2 className="text-3xl font-black text-slate-800">New Mentor Profile</h2>
+                <h2 className="text-3xl font-black text-slate-800">Add New Mentor</h2>
              </div>
              <button onClick={()=>setIsAdding(false)} className="p-3 hover:bg-slate-50 rounded-full transition-colors text-slate-300 hover:text-red-500"><X size={28}/></button>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Name (Indian)</label>
-              <div className="relative">
-                <UserCircle className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                <input className="w-full pl-14 pr-6 py-5 border border-slate-100 rounded-2xl bg-slate-50 outline-none focus:bg-white focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all font-bold" value={form.name} onChange={e=>setForm({...form, name: e.target.value})} placeholder="e.g. Rahul Verma"/>
-              </div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Name</label>
+              <input className="w-full p-5 border border-slate-100 rounded-2xl bg-slate-50 outline-none focus:bg-white focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all font-bold" value={form.name} onChange={e=>setForm({...form, name: e.target.value})} placeholder="e.g. Jane Doe"/>
             </div>
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Professional Role</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Current Role</label>
               <div className="relative">
                 <Briefcase className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                <input className="w-full pl-14 pr-6 py-5 border border-slate-100 rounded-2xl bg-slate-50 outline-none focus:bg-white focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all font-bold" value={form.role} onChange={e=>setForm({...form, role: e.target.value})} placeholder="e.g. Senior PO @ TechMahindra"/>
+                <input className="w-full pl-14 pr-6 py-5 border border-slate-100 rounded-2xl bg-slate-50 outline-none focus:bg-white focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all font-bold" value={form.role} onChange={e=>setForm({...form, role: e.target.value})} placeholder="e.g. Senior Product Manager"/>
               </div>
             </div>
             <div className="space-y-3 md:col-span-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Avatar Image URL</label>
-              <div className="relative">
-                <ImageIcon className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                <input className="w-full pl-14 pr-6 py-5 border border-slate-100 rounded-2xl bg-slate-50 outline-none focus:bg-white focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all font-bold" value={form.avatar} onChange={e=>setForm({...form, avatar: e.target.value})} placeholder="https://i.pravatar.cc/150?u=unique-id"/>
-              </div>
-            </div>
-            <div className="space-y-3 md:col-span-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Expertise Areas (Press Enter to add)</label>
-              <div className="relative">
-                <Award className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                <input className="w-full pl-14 pr-6 py-5 border border-slate-100 rounded-2xl bg-slate-50 outline-none focus:bg-white focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all font-bold" value={expertiseInput} onChange={e=>setExpertiseInput(e.target.value)} onKeyDown={handleAddExpertise} placeholder="e.g. User Stories, Agile Coaching..."/>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Expertise / Skills</label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Award className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+                  <input 
+                    className="w-full pl-14 pr-6 py-5 border border-slate-100 rounded-2xl bg-slate-50 outline-none focus:bg-white focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all font-bold" 
+                    value={expertiseInput} 
+                    onChange={e=>setExpertiseInput(e.target.value)} 
+                    onKeyPress={e => e.key === 'Enter' && addExpertise()}
+                    placeholder="Add a skill (e.g. Agile, UX Design) and press Enter"
+                  />
+                </div>
+                <button onClick={addExpertise} className="px-8 bg-slate-900 text-white rounded-2xl font-bold">Add</button>
               </div>
               <div className="flex flex-wrap gap-2 mt-4">
-                {form.expertise?.map(tag => (
-                  <span key={tag} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest">
-                    {tag} <button onClick={()=>removeExpertise(tag)}><X size={12}/></button>
+                {form.expertise?.map(skill => (
+                  <span key={skill} className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                    {skill}
+                    <button onClick={() => removeExpertise(skill)} className="hover:text-red-500"><X size={14}/></button>
                   </span>
                 ))}
               </div>
             </div>
+            <div className="space-y-3 md:col-span-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Avatar URL (Optional)</label>
+              <input className="w-full p-5 border border-slate-100 rounded-2xl bg-slate-50 outline-none focus:bg-white focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all font-bold" value={form.avatar} onChange={e=>setForm({...form, avatar: e.target.value})} placeholder="https://picsum.photos/..."/>
+            </div>
           </div>
-          
+
           <button onClick={handleCreate} className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl shadow-indigo-100 flex items-center justify-center gap-3 hover:scale-101 active:scale-0.99 transition-all"><Save size={24}/> Save Mentor Profile</button>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-12">
-        {mentors.map((m) => (
-          <div key={m.id} className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all group relative flex flex-col items-center text-center">
-             <button onClick={() => deleteMentor(m.id)} className="absolute top-6 right-6 text-slate-200 hover:text-red-500 transition-all p-3 hover:bg-red-50 rounded-2xl"><Trash2 size={24}/></button>
-             
-             <div className="w-32 h-32 rounded-[2.5rem] overflow-hidden mb-6 border-4 border-slate-50 shadow-xl group-hover:scale-110 transition-transform duration-500">
-                <img src={m.avatar} alt={m.name} className="w-full h-full object-cover" />
+        {mentors.length === 0 ? (
+          <div className="col-span-full py-32 text-center bg-white/40 backdrop-blur-sm rounded-[4rem] border-4 border-dashed border-slate-200 flex flex-col items-center justify-center space-y-6">
+             <div className="w-24 h-24 bg-slate-100 text-slate-300 rounded-[2rem] flex items-center justify-center">
+                <UserCircle size={48}/>
              </div>
-             
-             <h3 className="text-2xl font-black text-slate-800 tracking-tight">{m.name}</h3>
-             <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-6">{m.role}</p>
-             
-             <div className="flex flex-wrap justify-center gap-2 mt-auto">
-                {m.expertise.map(exp => (
-                  <span key={exp} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-[8px] font-black uppercase rounded-lg">
-                    {exp}
-                  </span>
-                ))}
+             <div>
+                <p className="text-2xl font-black text-slate-400">No Mentors Found</p>
+                <p className="text-slate-400 font-medium max-w-sm mt-2">Start adding industry experts to build your mentorship network.</p>
              </div>
           </div>
-        ))}
+        ) : (
+          mentors.map((m) => (
+            <div key={m.id} className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-900/5 hover:-translate-y-2 transition-all group relative overflow-hidden flex flex-col">
+               <div className="flex justify-between items-start mb-8">
+                  <img 
+                    src={m.avatar} 
+                    alt={m.name} 
+                    className="w-20 h-20 rounded-[1.5rem] object-cover border-4 border-slate-50"
+                    referrerPolicy="no-referrer"
+                  />
+                  <button onClick={() => deleteMentor(m.id)} className="text-slate-200 hover:text-red-500 transition-all p-3 hover:bg-red-50 rounded-2xl"><Trash2 size={24}/></button>
+               </div>
+               <div className="flex-1">
+                 <h3 className="text-2xl font-black text-slate-800 mb-1 leading-tight group-hover:text-indigo-600 transition-colors">{m.name}</h3>
+                 <p className="text-indigo-600 font-bold text-sm mb-6">{m.role}</p>
+                 <div className="flex flex-wrap gap-2">
+                   {m.expertise.map(skill => (
+                     <span key={skill} className="text-[9px] font-black uppercase tracking-widest px-3 py-1 bg-slate-100 text-slate-500 rounded-lg">{skill}</span>
+                   ))}
+                 </div>
+               </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

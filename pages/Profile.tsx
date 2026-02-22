@@ -15,7 +15,7 @@ const Profile: React.FC<{ profile: UserProfile, setProfile: any }> = ({ profile,
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <h1 className="text-3xl font-bold">Profile Settings</h1>
+      <h1 className="text-[12px] font-bold">Profile Settings</h1>
       <div className="grid md:grid-cols-3 gap-8">
         <div className="bg-white p-8 rounded-3xl border border-slate-100 flex flex-col items-center">
           <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 mb-4"><User size={40}/></div>

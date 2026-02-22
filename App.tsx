@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { 
   LayoutDashboard, GraduationCap, Route as RoadmapIcon, Users, UserCircle, 
-  Bell, CheckCircle2, Plus, LogOut, Settings, Library, Shield, Layout, ClipboardList
+  Bell, CheckCircle2, Plus, LogOut, Settings, Library, Shield, Layout, ClipboardList, Menu, X as CloseIcon
 } from 'lucide-react';
 import { UserProfile, LearningPath } from './types';
 import Dashboard from './pages/Dashboard';
@@ -17,7 +17,6 @@ import Evaluation from './pages/Evaluation';
 import AdminQuestions from './pages/AdminQuestions';
 import AdminCourses from './pages/AdminCourses';
 import AdminHub from './pages/AdminHub';
-import AdminMentors from './pages/AdminMentors';
 
 const App: React.FC = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
@@ -92,13 +91,61 @@ const App: React.FC = () => {
     if (learningPath) localStorage.setItem('po_path', JSON.stringify(learningPath));
   }, [learningPath]);
 
-  if (!userProfile) return <SignIn onSignIn={setUserProfile} />;
-
-  const isAdmin = userProfile.role === 'admin';
+  const isAdmin = userProfile?.role === 'admin';
+  const isMentor = userProfile?.role === 'mentor';
 
   return (
     <Router>
-      <div className="flex flex-col md:flex-row min-h-screen app-container text-slate-900">
+      {!userProfile ? (
+        <SignIn onSignIn={setUserProfile} />
+      ) : (
+        <div className="flex flex-col md:flex-row min-h-screen app-container text-slate-900">
+        {/* Mobile Header */}
+        <header className="md:hidden flex items-center justify-between p-4 bg-white/70 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-30">
+          <h1 className="text-xl font-black text-indigo-700 flex items-center gap-2">
+            <GraduationCap className="text-indigo-600" size={24} />
+            We Rise
+          </h1>
+          <div className="flex items-center gap-2">
+            <Link to="/profile" className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+              <UserCircle size={24} />
+            </Link>
+            <button 
+              onClick={handleSignOut}
+              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <LogOut size={24} />
+            </button>
+          </div>
+        </header>
+
+        {/* Mobile Bottom Navigation */}
+        {!isAdmin && !isMentor && (
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-200 z-40 px-2 py-1 flex justify-around items-center">
+            <BottomNavLink to="/" icon={<LayoutDashboard size={20} />} label="Home" />
+            <BottomNavLink to="/assessment" icon={<CheckCircle2 size={20} />} label="Assess" />
+            <BottomNavLink to="/roadmap" icon={<RoadmapIcon size={20} />} label="Path" />
+            <BottomNavLink to="/courses" icon={<Library size={20} />} label="Library" />
+          </nav>
+        )}
+
+        {isAdmin && (
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-200 z-40 px-2 py-1 flex justify-around items-center">
+            <BottomNavLink to="/admin" icon={<Shield size={20} />} label="Admin" />
+            <BottomNavLink to="/admin/courses" icon={<Library size={20} />} label="Library" />
+            <BottomNavLink to="/mentors" icon={<Users size={20} />} label="Mentors" />
+            <BottomNavLink to="/profile" icon={<UserCircle size={20} />} label="Profile" />
+          </nav>
+        )}
+
+        {isMentor && (
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-200 z-40 px-2 py-1 flex justify-around items-center">
+            <BottomNavLink to="/mentors" icon={<Users size={20} />} label="Dashboard" />
+            <BottomNavLink to="/roadmap" icon={<RoadmapIcon size={20} />} label="Review" />
+            <BottomNavLink to="/profile" icon={<UserCircle size={20} />} label="Profile" />
+          </nav>
+        )}
+
         <nav className="hidden md:flex flex-col w-64 bg-white/70 backdrop-blur-xl border-r border-slate-200 h-screen sticky top-0 p-6 shadow-sm z-20">
           <div className="mb-10">
             <h1 className="text-2xl font-black text-indigo-700 flex items-center gap-2">
@@ -113,7 +160,12 @@ const App: React.FC = () => {
                  <SidebarLink to="/admin" icon={<Shield size={20} />} label="Admin Hub" />
                  <SidebarLink to="/admin/courses" icon={<Library size={20} />} label="Library Curation" />
                  <SidebarLink to="/admin/questions" icon={<ClipboardList size={20} />} label="Exam Management" />
-                 <SidebarLink to="/admin/mentors" icon={<Users size={20} />} label="Mentor Curation" />
+                 <SidebarLink to="/mentors" icon={<Users size={20} />} label="Mentor Roster" />
+               </>
+            ) : isMentor ? (
+               <>
+                 <SidebarLink to="/mentors" icon={<Users size={20} />} label="Mentor Dashboard" />
+                 <SidebarLink to="/roadmap" icon={<RoadmapIcon size={20} />} label="Curriculum Review" />
                </>
             ) : (
                <>
@@ -121,7 +173,6 @@ const App: React.FC = () => {
                  <SidebarLink to="/assessment" icon={<CheckCircle2 size={20} />} label="Assessments" />
                  <SidebarLink to="/roadmap" icon={<RoadmapIcon size={20} />} label="Roadmap" />
                  <SidebarLink to="/courses" icon={<Library size={20} />} label="Library" />
-                 <SidebarLink to="/mentors" icon={<Users size={20} />} label="Mentors" />
                </>
             )}
           </div>
@@ -136,9 +187,9 @@ const App: React.FC = () => {
           </div>
         </nav>
         
-        <main className="flex-1 p-6 md:p-12 overflow-y-auto">
+        <main className="flex-1 p-6 md:p-12 overflow-y-auto pb-24 md:pb-12">
           <Routes>
-            <Route path="/" element={isAdmin ? <Navigate to="/admin" replace /> : <Dashboard profile={userProfile} path={learningPath} notifications={notifications} />} />
+            <Route path="/" element={isAdmin ? <Navigate to="/admin" replace /> : isMentor ? <Navigate to="/mentors" replace /> : <Dashboard profile={userProfile} path={learningPath} notifications={notifications} />} />
             <Route path="/admin" element={isAdmin ? <AdminHub /> : <Navigate to="/" replace />} />
             <Route path="/assessment/*" element={<Assessment profile={userProfile} setProfile={setUserProfile} setPath={setLearningPath} addNotify={()=>{}} />} />
             <Route path="/evaluation" element={<Evaluation profile={userProfile} />} />
@@ -148,24 +199,41 @@ const App: React.FC = () => {
             <Route path="/profile" element={<Profile profile={userProfile} setProfile={setUserProfile} />} />
             {isAdmin && <Route path="/admin/questions" element={<AdminQuestions />} />}
             {isAdmin && <Route path="/admin/courses" element={<AdminCourses />} />}
-            {isAdmin && <Route path="/admin/mentors" element={<AdminMentors />} />}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
       </div>
+      )}
     </Router>
   );
 };
 
-const SidebarLink: React.FC<{ to: string, icon: React.ReactNode, label: string }> = ({ to, icon, label }) => {
+const SidebarLink: React.FC<{ to: string, icon: React.ReactNode, label: string, onClick?: () => void }> = ({ to, icon, label, onClick }) => {
   const loc = useLocation();
   const active = loc.pathname === to || (to !== '/' && loc.pathname.startsWith(to));
   return (
     <Link 
       to={to} 
+      onClick={onClick}
       className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${active ? 'nav-active shadow-sm' : 'text-slate-500 hover:bg-slate-100/50 hover:text-indigo-600'}`}
     >
       {icon} <span className="text-sm">{label}</span>
+    </Link>
+  );
+};
+
+const BottomNavLink: React.FC<{ to: string, icon: React.ReactNode, label: string }> = ({ to, icon, label }) => {
+  const loc = useLocation();
+  const active = loc.pathname === to || (to !== '/' && loc.pathname.startsWith(to));
+  return (
+    <Link 
+      to={to} 
+      className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-300 ${active ? 'text-indigo-600' : 'text-slate-400 hover:text-indigo-600'}`}
+    >
+      <div className={`${active ? 'bg-indigo-50 p-1.5 rounded-lg' : ''}`}>
+        {icon}
+      </div>
+      <span className="text-[10px] font-bold uppercase tracking-tighter">{label}</span>
     </Link>
   );
 };

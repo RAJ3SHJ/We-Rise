@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { GraduationCap, ArrowRight, Mail, Lock, User, ArrowLeft, CheckCircle, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { GraduationCap, ArrowRight, Mail, Lock, User, ArrowLeft, CheckCircle, Shield, Users } from 'lucide-react';
 import { UserProfile } from '../types';
 
 interface SignInProps {
@@ -10,6 +11,7 @@ interface SignInProps {
 type AuthMode = 'signin' | 'signup' | 'forgot';
 
 const SignIn: React.FC<SignInProps> = ({ onSignIn }) => {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<AuthMode>('signin');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -31,6 +33,22 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn }) => {
         availabilityHoursPerWeek: 40,
         targetRole: 'Admin'
       });
+      navigate('/');
+      return;
+    }
+
+    if (mode === 'signin' && email === 'mentor@werise.app' && password === 'mentor123') {
+      onSignIn({ 
+        name: 'Expert Mentor', 
+        email: 'mentor@werise.app',
+        role: 'mentor',
+        mentorId: '1',
+        background: 'Product Leadership',
+        skills: ['Strategic Planning', 'Mentorship'],
+        availabilityHoursPerWeek: 10,
+        targetRole: 'Mentor'
+      });
+      navigate('/');
       return;
     }
 
@@ -58,6 +76,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn }) => {
           availabilityHoursPerWeek: 0,
           targetRole: 'Product Owner'
         });
+        navigate('/');
       } else {
         setMessage({ type: 'error', text: 'Invalid email or password.' });
       }
@@ -76,6 +95,13 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn }) => {
     setPassword('admin123');
     setMode('signin');
     setMessage({ type: 'success', text: 'Admin credentials pre-filled.' });
+  };
+
+  const loginAsMentor = () => {
+    setEmail('mentor@werise.app');
+    setPassword('mentor123');
+    setMode('signin');
+    setMessage({ type: 'success', text: 'Mentor credentials pre-filled.' });
   };
 
   return (
@@ -203,20 +229,27 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn }) => {
           </div>
         </div>
 
-        {/* Administrative Access Portal */}
-        <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl flex items-center justify-between group cursor-pointer hover:bg-slate-800 transition-all border border-white/10" onClick={loginAsAdmin}>
-           <div className="flex items-center gap-5">
-              <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
-                <Shield size={24} />
-              </div>
-              <div>
-                <h4 className="text-white font-black text-sm tracking-tight">Administrative Portal</h4>
-                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-0.5">Authorized Access Only</p>
-              </div>
-           </div>
-           <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-white transition-colors">
-              <ArrowRight size={18} />
-           </div>
+        {/* Access Portals */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-slate-900 p-6 rounded-[2rem] shadow-2xl flex flex-col group cursor-pointer hover:bg-slate-800 transition-all border border-white/10" onClick={loginAsAdmin}>
+             <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform mb-4">
+               <Shield size={20} />
+             </div>
+             <div>
+               <h4 className="text-white font-black text-xs tracking-tight">Admin Portal</h4>
+               <p className="text-slate-400 text-[8px] font-bold uppercase tracking-widest mt-0.5">System Control</p>
+             </div>
+          </div>
+
+          <div className="bg-indigo-900 p-6 rounded-[2rem] shadow-2xl flex flex-col group cursor-pointer hover:bg-indigo-800 transition-all border border-white/10" onClick={loginAsMentor}>
+             <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-indigo-300 group-hover:scale-110 transition-transform mb-4">
+               <Users size={20} />
+             </div>
+             <div>
+               <h4 className="text-white font-black text-xs tracking-tight">Mentor Portal</h4>
+               <p className="text-indigo-300 text-[8px] font-bold uppercase tracking-widest mt-0.5">Expert Access</p>
+             </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { UserProfile, LearningPath, CourseStatus } from '../types';
-import { Clock, TrendingUp, Trophy, ArrowRight, CheckCircle2, Sparkles, Bell } from 'lucide-react';
+import { UserProfile, LearningPath, CourseStatus, PathStatus } from '../types';
+import { Clock, TrendingUp, Trophy, ArrowRight, CheckCircle2, Sparkles, Bell, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface DashboardProps {
@@ -19,10 +19,12 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, path, notifications }) =
     <div className="space-y-8 animate-in fade-in duration-700">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Rise High, {profile?.name}!</h1>
+          <h1 className="text-[12px] font-black text-slate-900 tracking-tight">Rise High, {profile?.name}!</h1>
           <p className="text-slate-500 font-medium">
             {path 
-              ? `Your personalized path to Product Owner is active.` 
+              ? (path.status === PathStatus.PENDING 
+                  ? "Your mentor is currently curating your personalized roadmap." 
+                  : `Your personalized path to Product Owner is active.`)
               : "Welcome to We Rise. Start by building your tailored roadmap."}
           </p>
         </div>
@@ -67,6 +69,22 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, path, notifications }) =
             </div>
             
             {path ? (
+              path.status === PathStatus.PENDING ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-6 animate-in zoom-in-95 duration-500">
+                  <div className="w-24 h-24 bg-indigo-50 rounded-[2.5rem] flex items-center justify-center text-indigo-600 shadow-inner">
+                    <ShieldCheck size={48} className="animate-pulse" />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-black text-xl text-slate-800 tracking-tight">Curation in Progress</p>
+                    <p className="text-sm text-slate-500 font-medium max-w-xs mx-auto italic">
+                      Your mentor is manually selecting the best courses for your roadmap. You'll be notified once it's ready.
+                    </p>
+                  </div>
+                  <Link to="/mentors" className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-indigo-100 hover:scale-105 transition-all">
+                    Chat with Mentor
+                  </Link>
+                </div>
+              ) : (
               <div className="space-y-4">
                 {path.courses.slice(0, 5).map(course => (
                   <div key={course.id} className="flex items-center gap-5 p-6 rounded-[2rem] border border-slate-50 bg-white/50 hover:bg-white transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-indigo-500/5 group">
@@ -94,7 +112,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, path, notifications }) =
                   </Link>
                 )}
               </div>
-            ) : (
+            )) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-6">
                  <div className="w-24 h-24 bg-indigo-50 text-indigo-600 rounded-[2rem] flex items-center justify-center animate-bounce shadow-xl shadow-indigo-100">
                     <Sparkles size={40} />

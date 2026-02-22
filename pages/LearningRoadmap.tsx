@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { LearningPath, CourseStatus, UserProfile } from '../types';
-import { CheckCircle2, Clock, ExternalLink, Calendar, Star } from 'lucide-react';
+import { LearningPath, CourseStatus, UserProfile, PathStatus } from '../types';
+import { CheckCircle2, Clock, ExternalLink, Calendar, Star, Loader2, ShieldCheck } from 'lucide-react';
 
 interface RoadmapProps {
   path: LearningPath | null;
@@ -15,6 +15,26 @@ const LearningRoadmap: React.FC<RoadmapProps> = ({ path, setPath, profile }) => 
       <Star className="text-slate-200" size={64}/>
       <h2 className="text-2xl font-black text-slate-400">No active path.</h2>
       <p className="text-slate-400 font-medium max-w-sm">Complete your skill assessment to generate a custom rise roadmap.</p>
+    </div>
+  );
+
+  if (path.status === PathStatus.PENDING) return (
+    <div className="h-full flex flex-col items-center justify-center p-12 text-center space-y-8 animate-in zoom-in-95 duration-700">
+      <div className="relative">
+        <div className="w-32 h-32 bg-indigo-50 rounded-[3rem] flex items-center justify-center text-indigo-600 shadow-inner">
+          <ShieldCheck size={64} className="animate-pulse" />
+        </div>
+        <Loader2 className="absolute -bottom-2 -right-2 text-indigo-600 animate-spin" size={32} />
+      </div>
+      <div className="max-w-md space-y-4">
+        <h2 className="text-4xl font-black text-slate-900 tracking-tight">Curation in Progress</h2>
+        <p className="text-slate-500 font-medium text-lg leading-relaxed">
+          Your mentor is currently reviewing your profile and manually curating the best courses for your transition.
+        </p>
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm inline-block">
+          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Status: {path.status}</p>
+        </div>
+      </div>
     </div>
   );
 
@@ -35,7 +55,7 @@ const LearningRoadmap: React.FC<RoadmapProps> = ({ path, setPath, profile }) => 
     <div className="space-y-12 max-w-5xl mx-auto animate-in fade-in duration-700">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h1 className="text-5xl font-black text-slate-900 tracking-tight">{path.title}</h1>
+          <h1 className="text-[12px] font-black text-slate-900 tracking-tight">{path.title}</h1>
           <p className="text-slate-500 mt-4 text-lg font-medium italic">Empowering your {profile?.background} background to rise higher.</p>
         </div>
         <div className="bg-white px-8 py-5 rounded-[2rem] shadow-xl border border-slate-50 flex items-center gap-6">

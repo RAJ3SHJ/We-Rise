@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Course, CourseLevel, CourseStatus } from '../types';
-import { Plus, Trash2, Save, X, Globe, Youtube, ExternalLink, Link2, Info, Library, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Save, X, Globe, Youtube, ExternalLink, Link2, Info, Library, ArrowLeft } from 'lucide-react';
+import { DEFAULT_COURSES } from '../src/constants';
 
 const AdminCourses: React.FC = () => {
+  const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isAdding, setIsAdding] = useState(false);
-  const [urlError, setUrlError] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<Course>>({
     title: '',
     source: '',
@@ -19,7 +21,12 @@ const AdminCourses: React.FC = () => {
 
   useEffect(() => {
     const saved = localStorage.getItem('we_rise_admin_courses');
-    if (saved) setCourses(JSON.parse(saved));
+    if (saved) {
+      setCourses(JSON.parse(saved));
+    } else {
+      setCourses(DEFAULT_COURSES);
+      localStorage.setItem('we_rise_admin_courses', JSON.stringify(DEFAULT_COURSES));
+    }
   }, []);
 
   const saveCourses = (data: Course[]) => {
@@ -27,29 +34,11 @@ const AdminCourses: React.FC = () => {
     localStorage.setItem('we_rise_admin_courses', JSON.stringify(data));
   };
 
-  const isValidUrl = (urlString: string) => {
-    if (!urlString) return true; // Optional field
-    try {
-      const url = new URL(urlString);
-      return url.protocol === 'http:' || url.protocol === 'https:';
-    } catch (e) {
-      return false;
-    }
-  };
-
   const handleCreate = () => {
-    setUrlError(null);
-
     if (!form.title || !form.source) {
       alert("Title and Source are mandatory.");
       return;
     }
-
-    if (form.url && !isValidUrl(form.url)) {
-      setUrlError("Please enter a valid web address starting with http:// or https://");
-      return;
-    }
-
     const newCourse: Course = {
       id: Date.now().toString(),
       title: form.title!,
@@ -75,13 +64,19 @@ const AdminCourses: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in duration-700">
+      <button 
+        onClick={() => navigate('/admin')}
+        className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition-colors mb-4"
+      >
+        <ArrowLeft size={20} /> Back to Admin Hub
+      </button>
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
         <div>
-          <h1 className="text-5xl font-black text-slate-900 tracking-tight">Library Curation</h1>
+          <h1 className="text-[12px] font-black text-slate-900 tracking-tight">Library Curation</h1>
           <p className="text-slate-500 font-medium text-lg mt-2 italic">Add YouTube links or web courses to the master library.</p>
         </div>
         <button 
-          onClick={() => { setIsAdding(true); setUrlError(null); }} 
+          onClick={() => setIsAdding(true)} 
           className="px-10 py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-indigo-100 flex items-center gap-3 hover:scale-105 active:scale-95 transition-all"
         >
           <Plus size={20}/> New Master Course
@@ -121,18 +116,8 @@ const AdminCourses: React.FC = () => {
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">URL (YouTube Link or Website)</label>
               <div className="relative">
                 <Link2 className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                <input 
-                  className={`w-full pl-14 pr-6 py-5 border rounded-2xl bg-slate-50 outline-none transition-all font-bold ${urlError ? 'border-red-300 ring-4 ring-red-500/5 bg-white' : 'border-slate-100 focus:bg-white focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600'}`} 
-                  value={form.url} 
-                  onChange={e=>{ setForm({...form, url: e.target.value}); setUrlError(null); }} 
-                  placeholder="https://www.youtube.com/watch?v=..."
-                />
+                <input className="w-full pl-14 pr-6 py-5 border border-slate-100 rounded-2xl bg-slate-50 outline-none focus:bg-white focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all font-bold" value={form.url} onChange={e=>setForm({...form, url: e.target.value})} placeholder="https://www.youtube.com/watch?v=..."/>
               </div>
-              {urlError && (
-                <div className="flex items-center gap-2 text-red-500 text-[10px] font-bold uppercase tracking-widest ml-1 animate-in slide-in-from-top-1">
-                  <AlertCircle size={14} /> {urlError}
-                </div>
-              )}
             </div>
             <div className="grid grid-cols-2 gap-8 md:col-span-2">
               <div className="space-y-3">

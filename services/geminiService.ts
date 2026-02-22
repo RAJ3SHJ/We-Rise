@@ -13,6 +13,7 @@ export async function generateLearningPath(profile: UserProfile, availableCourse
     model: "gemini-3-pro-preview",
     contents: `You are a Career Counselor for "We Rise". 
     A student with a background in ${profile.background} wants to transition to a Product Owner role.
+    Their primary career goal is: ${profile.careerGoal || 'Not specified'}.
     They are currently skilled in: ${profile.skills.join(', ')}. 
     They commit ${profile.availabilityHoursPerWeek} hours per week.
 

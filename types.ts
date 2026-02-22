@@ -11,7 +11,13 @@ export enum CourseStatus {
   COMPLETED = 'Completed'
 }
 
-export type UserRole = 'user' | 'admin';
+export enum PathStatus {
+  PENDING = 'Pending Mentor Curation',
+  ACTIVE = 'Active',
+  COMPLETED = 'Completed'
+}
+
+export type UserRole = 'user' | 'admin' | 'mentor';
 
 export interface Course {
   id: string;
@@ -34,6 +40,8 @@ export interface UserProfile {
   skills: string[];
   availabilityHoursPerWeek: number;
   targetRole: string;
+  careerGoal?: string;
+  mentorId?: string;
   role: UserRole;
   themeColor?: string;
 }
@@ -44,6 +52,8 @@ export interface LearningPath {
   courses: Course[];
   overallProgress: number;
   lastUpdated: string;
+  status: PathStatus;
+  candidateEmail?: string;
 }
 
 export interface Question {
